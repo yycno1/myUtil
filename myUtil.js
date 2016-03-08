@@ -1,3 +1,4 @@
+// 我的工具集
 // 实现一个简单的Query
 function $(selector,content){
 	var con = content || document;
