@@ -71,6 +71,15 @@ function $(selector,content){
 	}
 }
 
+//获取计算后的样式信息
+$.getStyle = function(obj,attr){
+    if(obj.currentStyle){
+    	return obj.currentStyle(attr);
+    }else if(getComputedStyle){
+    	return getComputedStyle(obj,false)[attr];
+    }
+}
+
 //添加类名
 $.addClassName = function(element,newClassName){
 	if(!element.className){
@@ -132,11 +141,11 @@ $.isSiblingNode = function(element,siblingNode){
 };
 
 //文本框定位光标的位置
-$.setCursorPos = function(pos){
-	if(typeof titleInput.selectionStart === "number"){ //非ie
-	    titleInput.selectionStart = pos;
+$.setCursorPos = function(inputEle,pos){
+	if(typeof inputEle.selectionStart === "number"){ //非ie
+	    inputEle.selectionStart = pos;
 	}else{
-		var range = titleInput.creatTextRange();
+		var range = inputEle.creatTextRange();
 		range.move("character",pos);
 		range.select();
 	}
@@ -235,6 +244,63 @@ $.stopPropagation = function(event){
 		event.cancelBubble = true;
 	}
 };
+
+//动画
+$.move = function(){
+	var flag = {};
+	return function animate(obj,option,fn){
+	    clearTimeout(obj.timer);
+	    obj.timer = setTimeout(function(){
+	    	for(var attr in option){
+		    	//计算当前值
+		    	var icur = 0;
+		    	if(attr === "opacity"){
+		    		icur = Math.round(parseFloat($.getStyle(obj,attr))*100);
+		    	}else{
+		    		icur = parseInt($.getStyle(obj,attr));
+		    	}
+
+			    //目标值
+			    var itar = option[attr];
+			    
+		    	//计算速度
+		    	var speed = (itar-icur)/50;
+		    	speed = speed > 0 ? Math.ceil(speed) : Math.floor(speed);
+
+		    	//判断是否已达到目标值
+		    	if((speed > 0 && icur < itar) || (speed < 0 && icur > itar)){
+		    		//未达到目标
+		    		if(attr === "opacity"){
+		    			obj.style.opacity = (icur + itar)/100;
+		    			obj.style.filter = "alpha(opacity"+ icur + speed + ")"; //for ie6,7,8
+		    		}else{
+		    			obj.style[attr] = icur + speed + "px";
+		    		}
+		    		//做上标记
+		    		if(flag[attr] === undefined){
+		    			flag[attr] = true;  
+		    		}
+		    		animate(obj,option,fn);
+		    	}else{
+		    		//已达到目标
+		    		//删除标记
+		    		if(flag[attr]){
+			    		delete flag[attr];
+		    		}
+		    	}
+		    }
+		    //回调
+    		for(var i in flag){
+    			return;
+    		}
+		    if(typeof fn === "function"){
+		    	fn();
+		    }
+	    },20);
+	}
+}();
+
+
 
 //判断数组是否包含某个item
 $.isContain = function(arr,item){
